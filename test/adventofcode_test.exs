@@ -46,4 +46,18 @@ defmodule AdventofcodeTest do
 		assert Adventofcode.day6part1(data) == 400410
 		assert Adventofcode.day6part2(data) == 15343601
 	end
+
+	test "day7" do
+		data = File.read!("testfiles/day7.txt") |> String.rstrip |> String.split("\n")
+		output = Adventofcode.day7(data)
+		assert Map.get(output, "a") == 16076
+		output2 = Adventofcode.day7override(data, "b", Map.get(output, "a"))
+		assert Map.get(output2, "a") == 2797
+	end
+
+	test "day8" do
+		data = File.read!("testfiles/day8.txt") |> String.rstrip |> String.split("\n")
+		assert Adventofcode.day8(data) == 1371
+		assert Adventofcode.day8reverse(data) == 1
+	end
 end

@@ -1,5 +1,7 @@
 defmodule Adventofcode do
 
+	require Bitwise
+
 	def day1part1(input) do
 		input_s = :binary.bin_to_list(input)
 		Enum.reduce(input_s, 0, fn(x, acc) ->
@@ -178,6 +180,102 @@ defmodule Adventofcode do
 		end)
 		Enum.reduce(0..(:array.size(lights_result) - 1), 0, fn(x, acc) ->
 			acc + (:array.get(x, lights_result))
+		end)
+	end
+
+	def is_string_integer(input) do
+		try do
+			String.to_integer(input)
+			true
+		rescue
+			_ -> false
+		end
+	end
+
+	def day7op(operation, first, second \\ 0) do
+		case operation do
+			"AND" -> Bitwise.band(first, second)
+			"OR" -> Bitwise.bor(first, second)
+			"LSHIFT" -> Bitwise.bsl(first, second)
+			"RSHIFT" -> Bitwise.bsr(first, second)
+			"NOT" -> Bitwise.bnot(first)
+			true -> first
+		end
+	end
+
+	def day7(input, registers \\ Map.new) do
+		# Parse each instruction
+		size = map_size(registers)
+		output = Enum.reduce(input, registers, fn(instruction, r) ->
+			# Parse out the rule
+			parts = String.split(instruction, " ")
+
+			(cond do
+				length(parts) == 3 ->
+					cond do
+						is_string_integer(Enum.at(parts, 0)) -> Map.put_new(r, Enum.at(parts, 2), String.to_integer(Enum.at(parts, 0)))
+						Map.has_key?(r, Enum.at(parts, 0)) -> Map.put_new(r, Enum.at(parts, 2), Map.get(r, Enum.at(parts, 0)))
+						true -> r
+					end
+				length(parts) == 4 ->
+					# Figure out if the argument is set already
+					cond do
+						# Check if it is an integer
+						is_string_integer(Enum.at(parts, 1)) ->
+							Map.put_new(r, Enum.at(parts, 3), day7op(Enum.at(parts, 0), String.to_integer(Enum.at(parts, 1))))
+						# Check if it is in the map
+						Map.has_key?(r, Enum.at(parts, 1)) ->
+							Map.put_new(r, Enum.at(parts, 3), day7op(Enum.at(parts, 0), Map.get(r, Enum.at(parts, 1))))
+						# Otherwise, we have nothing to do
+						true -> r
+					end
+				length(parts) == 5 ->
+					# Figure out if our arguments are set already
+					cond do
+						# Check if they are both integers
+						is_string_integer(Enum.at(parts, 0)) and is_string_integer (Enum.at(parts, 2)) ->
+							Map.put_new(r, Enum.at(parts, 4), day7op(Enum.at(parts, 1), String.to_integer(Enum.at(parts, 0)), String.to_integer(Enum.at(parts, 2))))
+
+						# Check if they are both values in our map
+						Map.has_key?(r, Enum.at(parts, 0)) and Map.has_key?(r, Enum.at(parts, 2)) ->
+							Map.put_new(r, Enum.at(parts, 4), day7op(Enum.at(parts, 1), Map.get(r, Enum.at(parts, 0)), Map.get(r, Enum.at(parts, 2))))
+
+						# Check if one is an int and the other is in the map
+						is_string_integer(Enum.at(parts, 0)) and Map.has_key?(r, Enum.at(parts, 2)) ->
+							Map.put_new(r, Enum.at(parts, 4), day7op(Enum.at(parts, 1), String.to_integer(Enum.at(parts, 0)), Map.get(r, Enum.at(parts, 2))))
+						is_string_integer(Enum.at(parts, 2)) and Map.has_key?(r, Enum.at(parts, 0)) ->
+							Map.put_new(r, Enum.at(parts, 4), day7op(Enum.at(parts, 1), Map.get(r, Enum.at(parts, 0)), String.to_integer(Enum.at(parts, 2))))
+						# The only remaining combinations involve 1 or more unset value, so just skip
+						true -> r
+					end
+				true -> r
+			end)
+		end)
+
+		cond do
+			map_size(output) == size -> output
+			true -> day7(input, output)
+		end
+	end
+
+	def day7override(inputdata, key, value) do
+		r = Map.put(%{}, key, value)
+		day7(inputdata, r)
+	end
+
+	def day8(input) do
+		Enum.reduce(input, 0, fn(line, total) ->
+			codelength = String.length(line)
+			innerlength = String.length(Regex.replace(~r/\\x[0-9a-fA-F]{2}/, Regex.replace(~r/\\\\/, Regex.replace(~r/\\"/, line, "\""), "\\"), "5")) - 2
+			total + codelength - innerlength
+		end)
+	end
+
+	def day8reverse(input) do
+		Enum.reduce(input, 0, fn(line, total) ->
+			codelength = String.length(line)
+			innerlength = String.length(Regex.replace(~r/"/, String.replace(line, "\\", "\\\\"), "\\\"")) + 2
+			total + innerlength - codelength
 		end)
 	end
 end
